@@ -1,0 +1,21 @@
+https://www.bogotobogo.com/cplusplus/binarytree.php
+https://stackoverflow.com/questions/20372661/read-word-by-word-from-file-in-c
+http://www.cplusplus.com/articles/2LywvCM9/
+https://docs.microsoft.com/en-us/windows/desktop/api/winuser/nf-winuser-messagebox
+http://www.cplusplus.com/forum/windows/169960/
+https://www.cprogramming.com/tutorial/lesson18.html
+https://stackoverflow.com/questions/266168/simple-example-of-threading-in-c
+http://www.textfiles.com/etext/
+https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html
+
+Things to implement:
+
+&frec - most frequent occuring word
+&less - least frequent occuring word
+
+Wildcard:
+? - single character
+* - anything
+
+Other:
+	The search engine does not recognize numbers and symbols
