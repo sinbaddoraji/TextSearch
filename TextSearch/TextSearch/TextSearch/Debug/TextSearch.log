@@ -1,0 +1,5 @@
+﻿  Tree.cpp
+c:\users\sage\documents\visual studio 2017\projects\textsearch\textsearch\tree.cpp(19): warning C4018: '<': signed/unsigned mismatch
+c:\users\sage\documents\visual studio 2017\projects\textsearch\textsearch\tree.cpp(65): warning C4018: '<': signed/unsigned mismatch
+c:\users\sage\documents\visual studio 2017\projects\textsearch\textsearch\tree.cpp(65): warning C4018: '<=': signed/unsigned mismatch
+  TextSearch.vcxproj -> C:\Users\Sage\Documents\Visual Studio 2017\Projects\TextSearch\Debug\TextSearch.exe

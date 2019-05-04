@@ -5,55 +5,47 @@
 #include <vector>
 #include <thread>
 #include <regex>
-
+#include <sstream>
+#include <fstream>
 using namespace std;
 
-vector<string> matches;// list of matches during search found
+vector<Node*> matches;// list of matches during search found
 
-bool Contains(string word, string cont)
+bool contains(string word, string str)
 {
-	return word.find(cont) != word.npos;
+	return word.find(str) != word.npos;
 }
+
 void makeLowerCase(string& str)
 {
 	for (int i = 0; i < str.length(); i++)
 	{
-		if(isalpha(str[i]) && isupper(str[i]))
-			str[i] = tolower(str[i]);
+		//If is upper case convert it to lower case
+		if (str[i] > 64 && str[i] < 91) str[i] += 32;
 	}
 }
 
-vector<string> splitByWildcard(string pattern)
+inline void balanceStarWildcard(string& str,string comp)
 {
-	string dump = "";
-	vector<string> output;
-
-	for (char c : pattern)
+	//happiness
+	//h?*in*s => h?**in**s
+	int i = 0;
+	while (str.length() < comp.length())
 	{
-		if (c == '*' || c == '?')
+		if (i >= str.length()) return;
+		if (str[i] != '*') i++;
+		else
 		{
-			if (dump.empty()) continue;
-			output.push_back(dump);
-			dump.clear();
-
-			//include wildcard in splitting
-			string sym = c == '*' ? "*" : "?";
-			output.push_back(sym);
+			if (str[i + 1] != comp[i + 1]) 
+				str.insert(str.begin() + i, '*');
+			i++;
 		}
-		else dump.push_back(c);
 	}
-
-	if (!dump.empty()) output.push_back(dump);
-
-	return output;
 }
 
-bool isMatchWithPattern(string pattern, string data, bool matchCase)
+inline bool isMatchWithPattern(string pattern, string data, bool matchCase)
 {
-	//if matching pattern has no wildcard then return if both values are the same or not
-	if (!Contains(pattern, "*") && !Contains(pattern, "?")) return pattern == data;
-	else if (pattern == "?") return data.length() == 1;
-	else if (pattern == "*") return true;
+	if (data == "") return false;
 
 	if (matchCase == false)
 	{
@@ -61,119 +53,163 @@ bool isMatchWithPattern(string pattern, string data, bool matchCase)
 		makeLowerCase(data);
 	}
 
-	int match = 1;
-	for (int i = 0, j = 0; i < data.length() && j <= pattern.length(); i++)
+	//if matching pattern has no wildcard then return if both values are the same or not
+	if (!contains(pattern, "*") && !contains(pattern, "?")) return pattern == data;
+	else if (pattern == "?") return data.length() == 1;
+
+	string output = "";
+	balanceStarWildcard(pattern, data); //Ensure pattern and data are the same size
+
+	int i;
+	for (i = 0; i < pattern.length(); i++)
 	{
-		//case sensitive search not working
-		if (j == pattern.size()) break;
-		else if (pattern[j] == '*')
-		{
-			match *= 1;
-			if (data[i] == pattern[j + 1]) j++;
-		}
-		else if (pattern[j] == '?' || pattern[i] == data[j])
-		{
-			j++;
-			match *= 1;
-		}
-		else
-		{
-			match *= 0;
-			break;
-		}
+		if ((pattern[i] == '?' || pattern[i] == '*') && i < data.length()) 
+			output.push_back(data[i]);
+
+		else output.push_back(pattern[i]);
 	}
 
-	return match;
+	if (pattern[i - 1] != '?')
+	{
+		for (; i < data.length(); i++) output.push_back(data[i]);
+	}
+	
+
+	return data == output;
 }
 
-void search(Node* node, string word, bool caseSensitive)
+int searchByFrequency(string pattern)
+{
+	//Helps inteprete the '#' wildcard
+	int output = -1;
+
+	//Syntax: #4 -> search for word repeated 4 times
+	if (pattern[0] != '#') return output;
+
+	pattern.erase(pattern.begin()); //Remove '#' at the start of string
+
+	//Pass number out as interger output
+	stringstream s;
+	s << pattern;
+	s >> output;
+
+	return output;
+}
+
+void wordSearch(Node* node, string pattern, bool caseSensitive)
 {
 	//The binary tree is arranged in a way where the values that are not null are arranged to the right
 
 	//Run through all nodes that are not null (All right nodes)
+
 	while (node != NULL)
 	{
-		if (isMatchWithPattern(word, node->data,caseSensitive))
-			matches.push_back(node->data); // Add match to list of matches found
+		int frequency = searchByFrequency(pattern);
+		if (frequency != -1)
+		{
+			//variable 'frequency' holds the frequency of occurance being searched for
+
+			if (node->occarances == frequency) matches.push_back(node); // Add match to list of matches found
+		}
+		else if (isMatchWithPattern(pattern, node->word, caseSensitive))
+		{
+			matches.push_back(node); // Add match to list of matches found
+		}
 
 		node = node->right;
 	}
 }
 
-void Tree::DisplaySearchMatches()
+bool viewMatches()
 {
-	//matches are stored in vector->matches
+	system("title Press the letter \"Y\" to signify yes and \"N\" to signify no");
+
+	cout << endl << "Do you wish to view search matches" << endl;
+	cout << " (Y / N) ? ";
+
+	char c;
+	cin >> c;
+	c = tolower(c);
+
+	return c == 'y';
+}
+
+void Tree::displaySearchMatches()
+{
+	cout << matches.size() << " matches found \n";
+	if (matches.size() == 0) return;
+
+	if (viewMatches())
+	{
+		cout << endl;
+
+		for (Node* match : matches)
+		{
+			cout << match->word << " (found " << match->occarances << " time(s))" << endl;
+		}
+	}
 
 	//Clear vector after use
 	matches.clear();
 }
 
-int Tree::FrequencyOfOccurance(string word,bool caseSensitive)
+void Tree::search(string pattern, bool caseSensitive)
 {
-	Node* left = rootNode.left;
-	Node* right = rootNode.right;
+	if (pattern == "*")
+	{
+		matches = rawWordList;
+	}
+	else
+	{
+		//If root node is a match, add it to list of matches
+		if (isMatchWithPattern(pattern, rootNode->word, caseSensitive)) matches.push_back(rootNode);
 
-	if (rootNode.data == word) matches.push_back(rootNode.data);
+		//Search through left and right nodes on different threads reduce search time
+		thread searchLeftNode(&wordSearch, rootNode->left, pattern, caseSensitive);
+		thread searchRightNode(&wordSearch, rootNode->right, pattern, caseSensitive);
 
-	//Search through left and right nodes on different threads reduce search time
-	thread searchLeftNode(&search, left, word, caseSensitive);
-	thread searchRightNode(&search, right, word, caseSensitive);
+		//wait for the tasks on thread to finish
+		//Join the threads to the main thread
 
-	//wait for the tasks on thread to finish
-	//Join the threads to the main thread
-	searchLeftNode.join();
-	searchRightNode.join();
+		if (searchLeftNode.joinable())searchLeftNode.join();
+		if (searchRightNode.joinable())searchRightNode.join();
+	}
 
-	int frequency = matches.size();
-	DisplaySearchMatches(); // Ask user if results should be displayed
-
-	return frequency;
+	displaySearchMatches(); // Ask user if results should be displayed
 }
 
-void Tree::SetRoot(Node node)
+void Tree::setRoot(Node* node)
 {
 	rootNode = node;
-};
+}
 
-Node Tree::NewNode(string data, int index)
+void Tree::insert(Node& node, Node* leaf)
 {
-	Node newNode;
-	newNode.data = data;
-	newNode.index = index;
-	newNode.left = NULL;
-	newNode.right = NULL;
-	return newNode;
-};
-
-void Tree::Insert(Node& node, Node* leaf)
-{
-	if (node.index < leaf->index)
+	if (node.word == leaf->word)
 	{
-		if (leaf->left != NULL) Insert(node, leaf->left);
+		leaf->occarances++;
+		return;
+	}
+	else if (node.index < leaf->index)
+	{
+		if (leaf->left != NULL) insert(node, leaf->left);
 		else
 		{
-			leaf->left = new Node();
-			leaf->left->data = node.data;
-			leaf->left->index = node.index;
-			leaf->left->left = node.left;
-			leaf->left->right = node.right;
+			leaf->left = new Node(node);
+			rawWordList.push_back(leaf->left); // for faster "*" use
 		}
 	}
-	else if (node.index >= leaf->index) {
-		if (leaf->right != NULL) Insert(node, leaf->right);
+	else if (node.index > leaf->index) {
+		if (leaf->right != NULL) insert(node, leaf->right);
 		else
 		{
-			leaf->right = new Node();
-			leaf->right->data = node.data;
-			leaf->right->index = node.index;
-			leaf->right->left = node.left;
-			leaf->right->right = node.right;
+			leaf->right = new Node(node);
+			rawWordList.push_back(leaf->right); // for faster "*" use
 		}
 	}
-};
+}
 
-void Tree::Insert(string data, int index)
+void Tree::insert(Node& node)
 {
-	Node node = NewNode(data, index);
-	Insert(node, &rootNode);
-};
+	insert(node, rootNode);
+}
